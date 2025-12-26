@@ -1,181 +1,157 @@
 # Space Invader game using python turtle module
-# Created by Meezan malek
+# Adapted from pygame to turtle to avoid external dependencies
 
-import pygame
+import turtle
 import random
 import math
-from pygame import mixer
+import time
 
-# initialize game
-pygame.init()
-
-# creating a screen
-screen = pygame.display.set_mode((800, 600))  # passing width and height
-
-# title and icon
-pygame.display.set_caption("Space invaders")
-icon = pygame.image.load('player.png')
-pygame.display.set_icon(icon)
-
-# Background image
-backgroungImg = pygame.image.load("background.png")
-
-#Background sound
-mixer.music.load("background.wav")
-mixer.music.play(-1) #play background music on loop
-
-# defining our player
-player_icon = pygame.image.load('player.png')
-playerX = 370
-playerY = 480
-changedX = 0
-playerSpeed = 9
+# Set up the screen
+screen = turtle.Screen()
+screen.setup(width=800, height=600)
+screen.bgcolor("black")
+screen.title("Space Invaders - Turtle Version")
+screen.tracer(0) # Turns off animation for smoother movement
 
 # Score
 score_value = 0
-font = pygame.font.Font('freesansbold.ttf', 32)
+score_pen = turtle.Turtle()
+score_pen.speed(0)
+score_pen.color("white")
+score_pen.penup()
+score_pen.setposition(-380, 260)
+score_pen.hideturtle()
+score_pen.write(f"Score: {score_value}", align="left", font=("Arial", 16, "normal"))
 
-def showing_score(x,y):
-    score = font.render("Score  : "+str(score_value),True,(255,255,255))
-    screen.blit(score,(x,y))
+# Player
+player = turtle.Turtle()
+player.color("blue")
+player.shape("triangle")
+player.penup()
+player.speed(0)
+player.setposition(0, -250)
+player.setheading(90)
+# Restored to original fast speed
+player_speed = 20
 
-#game over
-def game_over():
-    overfont = pygame.font.Font('freesansbold.ttf',64)
-    gamefont = overfont.render("GAME OVER",True,(255,255,255))
-    screen.blit(gamefont,(200,250))
-
-def meezan(x,y):
-    font2 = pygame.font.Font('freesansbold.ttf',16)
-    score = font2.render("Developed by Meezan malik",True,(255,255,255))
-    screen.blit(score,(x,y))
-
-def player(x, y):
-    screen.blit(player_icon, (playerX, playerY))
-
-
-# Enemy
-enemyImg = []
-enemyX = []
-enemyY = []
-enemyX_change = []
-enemyY_change = []
+# Enemies
 num_of_enemies = 6
+enemies = []
 
 for i in range(num_of_enemies):
-    enemyImg.append(pygame.image.load('enemy.png'))
-    enemyX.append(random.randint(0, 736))
-    enemyY.append(random.randint(50, 150))
-    enemyX_change.append(4)
-    enemyY_change.append(40)
+    enemies.append(turtle.Turtle())
 
+for enemy in enemies:
+    enemy.color("red")
+    enemy.shape("circle")
+    enemy.penup()
+    enemy.speed(0)
+    x = random.randint(-380, 380)
+    y = random.randint(100, 250)
+    enemy.setposition(x, y)
 
-def enemy(x, y, i):
-    screen.blit(enemyImg[i], (x, y))
+# Kept slow (5 times slower than original 2.0)
+enemy_speed = 0.4
 
-
-# defining our bullet
-bullet_icon = pygame.image.load('bullet.png')
-bulletX = 0
-bulletY = 480
-bulletY_changed = 15  #bullet speed
+# Bullet
+bullet = turtle.Turtle()
+bullet.color("yellow")
+bullet.shape("triangle")
+bullet.penup()
+bullet.speed(0)
+bullet.setheading(90)
+bullet.shapesize(0.5, 0.5)
+bullet.hideturtle()
+# Restored to original fast speed
+bullet_speed = 40
 bullet_state = "ready"
 
+# Functions
+def move_left():
+    x = player.xcor()
+    x -= player_speed
+    if x < -380:
+        x = -380
+    player.setx(x)
 
-def bullet(x, y):
+def move_right():
+    x = player.xcor()
+    x += player_speed
+    if x > 380:
+        x = 380
+    player.setx(x)
+
+def fire_bullet():
     global bullet_state
-    bullet_state = "fired"
-    screen.blit(bullet_icon, (x + 16, y + 10))
+    if bullet_state == "ready":
+        bullet_state = "fired"
+        x = player.xcor()
+        y = player.ycor() + 10
+        bullet.setposition(x, y)
+        bullet.showturtle()
 
+def is_collision(t1, t2):
+    distance = math.sqrt(math.pow(t1.xcor() - t2.xcor(), 2) + math.pow(t1.ycor() - t2.ycor(), 2))
+    return distance < 20
 
-def isCollision(enemyX, enemyY, bulletX, bulletY):
-    distance = math.sqrt(math.pow(enemyX - bulletX, 2) + (math.pow(enemyY - bulletY, 2)))
-    if distance < 27:
-        return True
-    else:
-        return False
+# Keyboard bindings
+screen.listen()
+screen.onkeypress(move_left, "Left")
+screen.onkeypress(move_right, "Right")
+screen.onkeypress(fire_bullet, "space")
 
-
+# Main game loop
 running = True
-# main game loop
 while running:
+    time.sleep(0.01) # Small delay to regulate overall frame rate
+    screen.update()
 
-    screen.fill((0, 0, 0))  # background
-    screen.blit(backgroungImg, (0, 0))
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
+    # Move the bullet
+    if bullet_state == "fired":
+        y = bullet.ycor()
+        y += bullet_speed
+        bullet.sety(y)
 
-        # player movement functionally
-        if event.type == pygame.KEYDOWN:
-            # print("you preesed a key")
-
-            if event.key == pygame.K_LEFT:
-                # print("left key pressed")
-                changedX = -playerSpeed
-
-            if event.key == pygame.K_RIGHT:
-                # print("right key pressed")
-                changedX = playerSpeed
-
-            if event.key == pygame.K_SPACE:
-                if bullet_state is "ready":
-                    bullet_sound = mixer.Sound("laser.wav")
-                    bullet_sound.play()
-                    bulletX = playerX
-                    bullet_state = "fired"
-
-        if event.type == pygame.KEYUP and (event.key == pygame.K_LEFT or event.key == pygame.K_RIGHT):
-            changedX = 0
-
-    # player movement
-    playerX += changedX
-    # restricting the player inside the window
-    if playerX <= 0:
-        playerX = 0
-    elif playerX >= 736:
-        playerX = 736
-
-    # Enemy Movement
-    for i in range(num_of_enemies):
-
-        # Game Over
-        if enemyY[i] > 440:
-            for j in range(num_of_enemies):
-                enemyY[j] = 2000
-            game_over()
-            meezan(300,350)
-            break
-        enemyX[i] += enemyX_change[i]
-        if enemyX[i] <= 0:
-            enemyX_change[i] = 4
-            enemyY[i] += enemyY_change[i]
-        elif enemyX[i] >= 736:
-            enemyX_change[i] = -4
-            enemyY[i] += enemyY_change[i]
-
-        # Collision
-        collision = isCollision(enemyX[i], enemyY[i], bulletX, bulletY)
-        if collision:
-            mixer.Sound("explosion.wav").play()
-            bulletY = 480
-            bullet_state = "ready"
-            score_value += 1
-            enemyX[i] = random.randint(0, 736)
-            enemyY[i] = random.randint(50, 150)
-
-        enemy(enemyX[i], enemyY[i], i)
-
-    # bullet movement
-    if bulletY <= 0:
-        bulletY = 480
+    if bullet.ycor() > 275:
+        bullet.hideturtle()
         bullet_state = "ready"
 
-    if bullet_state is "fired":
-        bullet(bulletX, bulletY)
-        bulletY -= bulletY_changed
+    # Move enemies (the slow obstacles)
+    for enemy in enemies:
+        x = enemy.xcor()
+        x += enemy_speed
+        enemy.setx(x)
 
-    showing_score(10,10)
+        # Move enemy back and down
+        if enemy.xcor() > 380 or enemy.xcor() < -380:
+            for e in enemies:
+                y = e.ycor()
+                y -= 40
+                e.sety(y)
+            enemy_speed *= -1
 
-    player(playerX, playerY)
-    pygame.display.update()
+        # Check for collision
+        if is_collision(bullet, enemy):
+            bullet.hideturtle()
+            bullet_state = "ready"
+            bullet.setposition(0, -400)
+            # Reset enemy
+            x = random.randint(-380, 380)
+            y = random.randint(100, 250)
+            enemy.setposition(x, y)
+            # Update score
+            score_value += 1
+            score_pen.clear()
+            score_pen.write(f"Score: {score_value}", align="left", font=("Arial", 16, "normal"))
+
+        if enemy.ycor() < -230:
+            # Game Over logic
+            for e in enemies:
+                e.hideturtle()
+            player.hideturtle()
+            score_pen.setposition(0, 0)
+            score_pen.write("GAME OVER", align="center", font=("Arial", 24, "bold"))
+            running = False
+            break
+
+turtle.done()
